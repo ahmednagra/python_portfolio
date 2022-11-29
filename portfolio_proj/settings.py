@@ -41,13 +41,13 @@ else:
 # Application definition
 
 INSTALLED_APPS = [
+    'web_app',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'web_app',
 ]
 
 MIDDLEWARE = [
@@ -135,7 +135,9 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "web_app/static/"),
+]
 # Enable WhiteNoise's GZip compression of static assets.
 #STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
@@ -162,6 +164,4 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # is a file where file upload and oacted on file system
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "web_app/static/"),
-]
+
