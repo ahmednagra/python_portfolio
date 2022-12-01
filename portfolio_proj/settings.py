@@ -9,12 +9,11 @@ https://docs.djangoproject.com/en/4.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
-
+import dj_database_url
 import os
+from django.test.runner import DiscoverRunner
 from pathlib import Path
 
-import dj_database_url
-from django.test.runner import DiscoverRunner
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -28,15 +27,16 @@ SECRET_KEY = 'django-insecure-+cnt^6k5&=zs4_8)kp43f5p1tegfbk%53hm)q!fj)v%j2b8tj6
 
 if 'SECRET_KEY' in os.environ:
     SECRET_KEY = os.environ["SECRET_KEY"]
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
 # Generally avoid wildcards(*). However since Heroku router provides hostname validation it is ok
-
 if IS_HEROKU:
     ALLOWED_HOSTS = ["*"]
 else:
     ALLOWED_HOSTS = []
+
+# SECURITY WARNING: don't run with debug turned on in production!
+if not IS_HEROKU:
+    DEBUG = True
 
 # Application definition
 
@@ -134,12 +134,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "web_app/static/"),
-]
+STATIC_ROOT = BASE_DIR / "staticfiles"
+#STATICFILES_DIRS = [os.path.join(BASE_DIR, "web_app/static/"),]
+
 # Enable WhiteNoise's GZip compression of static assets.
-#STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 
 # Test Runner Config
@@ -154,7 +153,7 @@ class HerokuDiscoverRunner(DiscoverRunner):
 
 # Use HerokuDiscoverRunner on Heroku CI
 if "CI" in os.environ:
-    TEST_RUNNER = "gettingstarted.settings.HerokuDiscoverRunner"
+    TEST_RUNNER = "'portfolio_proj.settings.HerokuDiscoverRunner"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
@@ -162,6 +161,6 @@ if "CI" in os.environ:
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # is a file where file upload and oacted on file system
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-MEDIA_URL = '/media/'
+#MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+#MEDIA_URL = '/media/'
 
