@@ -4,7 +4,7 @@
 
 The goal of this project is to provide minimalistic django project template that everyone can use, which _just works_ out of the box and has the basic setup you can expand on. 
 
-Template is written with django 1.11 and python 3 in mind.
+Template is written with django 4.1.3 and python 3.11 in mind.
 
 ![Default Home View](__screenshots/1.png))
 ### Main features
@@ -36,7 +36,7 @@ If your project is already in an existing python3 virtualenv first install djang
 And then run the `django-admin.py` command to start the new project:
 
     $ django-admin.py startproject \
-      --template=https://github.com/nikola-k/django-template/zipball/master \
+      --template=https://github.com/ahmednagra/python_portfolio/zipball/master \
       --extension=py,md \
       <project_name>
       
@@ -53,8 +53,8 @@ If you don't have django installed for python 3 then run:
     
 And then:
 
-    $ python3 -m django startproject \
-      --template=https://github.com/nikola-k/django-template/zipball/master \
+    $ python3 -m django python_portfolio \
+      --template=https://github.com/ahmednagra/python_portfolio/zipball/master \
       --extension=py,md \
       <project_name>
       
@@ -69,8 +69,8 @@ After that just install the local dependencies, run migrations, and start the se
 
 First clone the repository from GitHub and switch to the new directory:
 
-    $ git clone git@github.com/USERNAME/{{ project_name }}.git
-    $ cd {{ project_name }}
+    $ git clone git@github.com/ahmednagra/{{ python_portfolio }}.git
+    $ cd {{ python_portfolio }}
     
 Activate the virtualenv for your project.
     

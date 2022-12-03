@@ -1,4 +1,5 @@
 {% extends "web_app/base.html" %}
+{% block title %} Home {% endblock %}
 {% load static %}
 {% block content %}
 <!--==================  Area Section Start ==================-->
@@ -14,11 +15,9 @@
           <span class="shape shape-4"></span>
         </div>
         <p class="mb-3 fw-medium fs-4 text-primary">Hello, myself ahmed....</p>
-        <h1 class="mb-4">Creating fast website and softwares </h1>
-        <p class="mb-5">Lorem ipsum dolor sit amet, consecttur adipiscing Orci
-          fauff cibus urna, sed senectus iaculis leo condimentum. Maenas nec adipiscing neque, pellentesque in. Metus
-          fusce.</p>
-        <a href="#" class="btn btn-primary btn-lg">Know About Me</a>
+        <h1 class="mb-4">Custom Application Development</h1>
+        <p class="mb-5">We design and build custom application solutions to our clients' requirements.</p>
+        <a href="{% url 'portfolio'%}" class="btn btn-primary btn-lg">Know About Me</a>
       </div>
     </div>
   </div>
@@ -102,9 +101,10 @@
             <i class="fas fa-cloud "></i>
           </div>
           <div class="card-body">
-            <h4 class="card-title">Research And Design</h4>
-            <p class="card-text small">Lorem ipsum dolor amet, consesd ctetur adipiscing elit. Malesa est sagittis et
-              nuasslla ntis enim vel suspend wergisse eu masgnis suada vitae, ullamchper nisl eget gravda.</p>
+            <h4 class="card-title">BUSINESS PROCESS DIGITALIZATION CONSULTING</h4>
+            <p class="card-text small">More often than not, businesses are so focused on driving up their bottom-lines
+              through diligent delivery of their core services that the business processes that
+              support the business operations are either overlooked or assigned a lower priority ....</p>
             <a href="{% url 'portfolio-single' %}" class="text-primary card-link mb-0 small">View Details<i
                 class="fas fa-arrow-right ms-2"></i></a>
           </div>
@@ -116,9 +116,11 @@
             <i class="far fa-lightbulb "></i>
           </div>
           <div class="card-body">
-            <h4 class="card-title">User Interface Design</h4>
-            <p class="card-text small">Lorem ipsum dolor amet, consesd ctetur adipiscing elit. Malesa est sagittis et
-              nuasslla ntis enim vel suspend wergisse eu masgnis suada vitae, ullamchper nisl eget gravda.</p>
+            <h4 class="card-title">IT SOLUTIONS MAINTENANCE & MANAGEMENT SERVICES</h4>
+            <p class="card-text small">Data scrapping is a service line
+              which am has vast experience in. With excellent knowledge in Python and data scrapping technologies
+              processes and procedures, as well as a team of experienced technical and project
+              management professionals ...</p>
             <a href="#" class="text-primary card-link mb-0 small">View Details<i
                 class="fas fa-arrow-right ms-2"></i></a>
           </div>

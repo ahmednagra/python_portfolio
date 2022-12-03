@@ -25,12 +25,12 @@ from django.shortcuts import render
 
 # Create your views here.
 def home(request):
+    """title=""
+    def get_title(self):
+        return self.title"""
     return render(request, "web_app/index.html")
-
-
 def about(request):
     return render(request, "web_app/about.html")
-
 
 def portfo(request):
     return render(request, "web_app/portfolio.html")
