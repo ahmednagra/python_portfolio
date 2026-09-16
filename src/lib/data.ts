@@ -5,7 +5,7 @@ export const profile = {
     "I build reliable, scalable web applications — from Django/Python backends to modern React/Next.js frontends.",
   github: "https://github.com/ahmednagra",
   location: "Pakistan",
-  email: "echooodotai@gmail.com",
+  email: "ahmednagra9@gmail.com",
   bio: "Full-stack developer specializing in Python/Django and modern JavaScript frameworks. Experienced in building e-commerce platforms, point-of-sale systems, REST APIs, and NLP/ML-driven applications, with a focus on clean architecture and production-ready code.",
 };
 
