@@ -1,0 +1,8 @@
+packages:
+  - "."
+allowBuilds:
+  unrs-resolver: true
+minimumReleaseAgeExclude:
+  - framer-motion@13.4.0
+  - jsdom@30.1.0
+  - motion@13.4.0

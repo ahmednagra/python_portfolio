@@ -1,0 +1,192 @@
+@import "tailwindcss";
+
+/*
+ * Design system: "Systems Ledger" (Systems Schematic base + Vertical Ledger
+ * grafts). Warm-paper neutral canvas with a single amber/red "annotation"
+ * signal color. Dual dark-mode wiring: an automatic media-query path for
+ * visitors who never touch the toggle, guarded off once a manual choice is
+ * stored, plus a manual override attribute set by ThemeToggle.
+ *
+ * Motion is no-motion-first: every transition below lives inside
+ * `@media (prefers-reduced-motion: no-preference)`. The base stylesheet
+ * ships zero animation by default.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Canvas + ink (warm paper, oklch) */
+  --color-canvas: oklch(98.5% 0.004 90);
+  --color-canvas-raised: oklch(100% 0 0);
+  --color-ink: oklch(22% 0.01 80);
+  --color-ink-muted: oklch(42% 0.012 80);
+  --color-border: oklch(85% 0.01 80);
+  --color-border-strong: oklch(70% 0.012 80);
+
+  /* Single annotation signal color (amber/red) */
+  --color-signal: oklch(54% 0.19 35);
+  --color-signal-on: oklch(99% 0.01 90);
+
+  /* Semantic tones for Badge */
+  --color-tone-neutral: var(--color-ink-muted);
+  --color-tone-signal: var(--color-signal);
+  --color-tone-success: oklch(52% 0.13 150);
+  --color-tone-warning: oklch(54% 0.15 75);
+  --color-tone-danger: oklch(52% 0.19 25);
+
+  --focus-ring-color: var(--color-signal);
+
+  --shadow-xs: 0 1px 2px oklch(22% 0.01 80 / 0.06);
+
+  /* Typography */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SFMono-Regular", monospace;
+
+  --measure-prose: 68ch;
+  --font-size-prose: 1.1875rem; /* 19px */
+  --line-height-prose: 1.6;
+
+  /* Layout */
+  --container-max: 1120px;
+  --toc-rail-width: 220px;
+
+  /* Motion timing (two-tier) */
+  --duration-instant: 100ms;
+  --duration-ui: 180ms;
+  --duration-ui-slow: 250ms;
+  --duration-explain-step: 600ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --ease-linear: linear;
+}
+
+/* Automatic dark mode for visitors with no stored preference */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --color-canvas: oklch(20% 0.008 80);
+    --color-canvas-raised: oklch(24% 0.009 80);
+    --color-ink: oklch(94% 0.005 90);
+    --color-ink-muted: oklch(74% 0.012 85);
+    --color-border: oklch(34% 0.012 80);
+    --color-border-strong: oklch(46% 0.014 80);
+
+    --color-signal: oklch(72% 0.17 45);
+    --color-signal-on: oklch(16% 0.01 80);
+
+    --color-tone-success: oklch(70% 0.14 150);
+    --color-tone-warning: oklch(76% 0.15 80);
+    --color-tone-danger: oklch(70% 0.18 25);
+
+    --shadow-xs: 0 1px 2px oklch(0% 0 0 / 0.4);
+  }
+}
+
+/* Manual override, set by ThemeToggle via data-theme on <html> */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-canvas: oklch(20% 0.008 80);
+  --color-canvas-raised: oklch(24% 0.009 80);
+  --color-ink: oklch(94% 0.005 90);
+  --color-ink-muted: oklch(74% 0.012 85);
+  --color-border: oklch(34% 0.012 80);
+  --color-border-strong: oklch(46% 0.014 80);
+
+  --color-signal: oklch(72% 0.17 45);
+  --color-signal-on: oklch(16% 0.01 80);
+
+  --color-tone-success: oklch(70% 0.14 150);
+  --color-tone-warning: oklch(76% 0.15 80);
+  --color-tone-danger: oklch(70% 0.18 25);
+
+  --shadow-xs: 0 1px 2px oklch(0% 0 0 / 0.4);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-canvas: var(--color-canvas);
+  --color-canvas-raised: var(--color-canvas-raised);
+  --color-ink: var(--color-ink);
+  --color-ink-muted: var(--color-ink-muted);
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --color-signal: var(--color-signal);
+  --color-signal-on: var(--color-signal-on);
+  --color-tone-neutral: var(--color-tone-neutral);
+  --color-tone-signal: var(--color-tone-signal);
+  --color-tone-success: var(--color-tone-success);
+  --color-tone-warning: var(--color-tone-warning);
+  --color-tone-danger: var(--color-tone-danger);
+  --font-family-sans: var(--font-sans);
+  --font-family-mono: var(--font-mono);
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+html {
+  background: var(--color-canvas);
+  color-scheme: inherit;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Visible focus ring on every interactive element, everywhere */
+:focus-visible {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Editorial prose scale for MDX case studies / articles, kept separate
+   from the compact UI scale used by the rest of the site. */
+.prose-editorial {
+  max-width: var(--measure-prose);
+  font-size: var(--font-size-prose);
+  line-height: var(--line-height-prose);
+}
+
+.prose-editorial :is(h2, h3, h4) {
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.mono-label {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem; /* 13px */
+  font-variant-numeric: tabular-nums slashed-zero;
+  letter-spacing: 0.01em;
+}
+
+/* Native scrolling only; smoothing is a pure enhancement, never required
+   for content or diagram functionality. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

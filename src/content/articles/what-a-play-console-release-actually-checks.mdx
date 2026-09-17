@@ -1,0 +1,34 @@
+export const meta = {
+  slug: "what-a-play-console-release-actually-checks",
+  title: "What Google Play Actually Checks Before It Blocks Your Release",
+  date: "2026-09-16",
+  summary:
+    "Play Console review reads the merged Android manifest of the bundle you upload, not the code you wrote. Notes from taking an Expo / React Native app through a real release, including a block over a permission the app's own code never requested.",
+};
+
+Publishing an Android app through Google Play Console takes more than building it. These are the mechanics and the failures from a recent Expo / React Native release.
+
+## What the release actually involved
+
+- Expo Continuous Native Generation — the native `android/` folder is regenerated from `app.json` rather than hand-maintained
+- A release Android App Bundle built locally with Gradle
+- Play App Signing — the upload key and Google's own app-signing key are two different certificates, and the difference matters the first time something depends on the signing key specifically
+- Checking the signing certificate with `keytool` before every upload, not just the first
+- Moving a build through internal testing before it goes anywhere near a production submission
+- The Play compliance surface: a privacy policy, an account-deletion URL, and the Data safety form
+
+## What actually went wrong, and the fix for each
+
+**Play blocked the production submission over a permission the code never requests.** A third-party library pulled a media-access permission into the merged manifest during the build. The app's own source has zero references to it. The fix is to declare it explicitly blocked in `app.json`, verify the *merged* manifest is clean before uploading — not the source tree — and replace the bundle on every release track, since a track that already has the bad manifest does not get automatically corrected by a later upload elsewhere.
+
+**Gallery picking silently broke on older Android versions.** The app had been requesting a storage permission that the block above then removed. The fix, once the request was gone, is that the system Photo Picker needs no permission at all on modern Android — the correct behavior was to stop asking, not to work around the block.
+
+**The native build failed on Windows, but only sometimes.** A 260-character path limit in the C++ toolchain broke intermittently depending on where the project happened to be checked out. The fix was mechanical: build from a short path.
+
+**Every `expo prebuild` quietly reset the release signing configuration.** Continuous Native Generation regenerates the native project on each build, which is the point of it — but it also discards manual signing changes each time. The fix is a small script that reapplies the release signing configuration immediately before every build, rather than editing the generated files by hand and losing the edit on the next generation.
+
+**A routine dependency-audit command broke the app outright.** Running an automatic `audit fix` in force mode downgraded the framework SDK underneath the app, silently, as a side effect of chasing advisory noise. The fix was reverting `package.json` and the lockfile to the last known-good state, and this command is now off-limits on this kind of project entirely — the audit fixes were not worth the SDK compatibility they broke.
+
+## The takeaway
+
+Play reviews the artifact you upload — the bundle and its merged manifest — not the source repository behind it. A dependency can add a permission your code never asked for, and the review process has no way to know that; it only sees the final manifest. Checking the merged manifest before every release, not just the source, would have caught this before the production draft could even be submitted for review, rather than after.

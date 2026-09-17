@@ -1,0 +1,91 @@
+export const frontmatter = {
+  slug: "designing-for-a-hostile-target",
+  title: "Designing a Capture System for a Platform That Is Actively Trying to Stop You",
+  variant: "reliability",
+  diagramKey: "capture-pipeline",
+  tags: ["data-extraction", "resilience", "architecture", "anti-bot"],
+  attributionLine: "Sole author — every commit on this project is mine.",
+  attributionToken: "Sole author",
+  buildState: "DESIGNED",
+  buildStateNote:
+    "A prototype, by its own documentation. One platform adapter is verified end to end against live accounts, running on the fetch mechanism it was originally built with. Storage, queue, scheduler, and API layers are designed but not built. A separate, newer fetch runtime, built on the open-source Crawlee library, has been written but never executed against a live target — a distinct code path from the one the verified adapter runs on, not the same runtime described twice. Separately: the repository's own README overstates its test count (106 claimed vs. the number of test functions actually present).",
+  publicationStatus: "cleared",
+  summary30s:
+    "A multi-platform account-capture service was designed with the boundary between platforms and the core system defined before a single platform adapter was written, an admission gate that fails closed, session pools with identity health tracking, and raw responses stored before any parsing happens — so a parser bug is a reprocessing job, not a lost capture run. Its own documentation states plainly which parts are running and which are still designed.",
+  oneLine: "A resilient extraction architecture for a hostile, fast-changing target.",
+  audienceFit:
+    "Data-driven businesses running lead generation, price intelligence, or listings aggregation, and technical buyers evaluating extraction reliability",
+};
+
+## Problem
+
+Capturing social account data from a platform that actively resists it is not the same engineering problem as calling a stable, cooperative API. The target changes its markup, its rate limits, and its bot-detection signals on its own schedule, not yours. The naive version — fetch, parse, store the parsed result — throws away the one thing that would let you recover from a parser bug: the original response.
+
+## Context
+
+This is a standalone capture service, independent of any other product's database, intended to feed structured account data to a discovery product. I designed and built it alone, including the decision to define the platform-adapter boundary before writing a single adapter against a real target.
+
+## Constraints
+
+**A parser bug should never mean re-fetching.** Re-fetching costs time, risk, and sometimes is not even possible if the target page has already changed again by the time you notice.
+
+**Identity health degrades under sustained use.** A session that looks healthy on request one can be flagged by request fifty. Treating every session as equally trustworthy forever is how a capture run gets an entire identity blocked.
+
+**A platform kill switch has to fail closed.** If a target platform is switched off — deliberately, or because something looks wrong — the system's default has to be "stop capturing from it," not "keep going until told otherwise."
+
+**A new platform adapter should not require redesigning the core.** If adding a second or third platform means touching the admission logic, the session pool, or the storage layer, the boundary was drawn in the wrong place the first time.
+
+## Architecture
+
+```text
+request --> admission gate (fails closed) --> egress pool (per-address token budget)
+                                                      |
+                                                      v
+                                          session pool (identity health,
+                                          retirement, recovery, restart
+                                          persistence)
+                                                      |
+                                                      v
+                                          fetch runtime --> raw store
+                                                                |
+                                                                v
+                                                  versioned parser --> outcome routing
+```
+
+A Ports-based boundary defines what a platform adapter must implement before any adapter exists — the kernel does not know which platform it is talking to; it only knows the contract. Raw bytes are written to storage before any parsing is attempted. A parser reads from that raw store and can be replaced or fixed without ever touching the network layer, and a fixed parser can be re-run against everything already captured.
+
+## Decisions
+
+**Store raw responses before parsing, always.** This single decision means a parser bug becomes a reprocessing job against already-captured data, not a lost capture run that has to be redone against a live, actively-changing target.
+
+**Versioned parsers, not one parser that is edited in place.** When the target's markup changes, a new parser version is added rather than the old one silently mutated — so historical raw data can be reprocessed against the parser version that actually matches when it was captured.
+
+**An admission gate that fails closed, with a per-platform kill switch.** If a platform is switched off, or something about its response pattern looks wrong, the default behavior is to stop, not to continue optimistically.
+
+**Session pools that track identity health explicitly** — retirement, recovery, and restart persistence are first-class states, not an afterthought bolted onto a simple session list.
+
+**Per-address token budgets in the egress layer**, so request pacing is enforced structurally rather than left to a developer remembering to add a delay.
+
+**A scaffold generator for new platform adapters**, paired with a CI check that flags drift between the number of adapters and the number of declared tests — an architecture-conformance tool, not just a productivity convenience.
+
+## A capacity question, answered honestly
+
+Before committing to this approach at any real scale, I worked through the arithmetic of what a large discovery backfill would actually cost — an original cost model relating request depth to average calls per record, a sensitivity table on how much identity "dormancy" would change the total, and a second option (varying capture depth rather than the target universe) that the naive version of the plan had not considered. I labeled the inputs honestly in the analysis itself: one rate figure was configured, not measured, and one ratio was an explicit estimate invented for illustration, with a one-day experiment proposed to measure the real number. The analysis's own conclusion was direct: the technique alone does not close a capacity gap without also reducing the universe being captured — a conclusion that costs something to admit and is more useful for being admitted.
+
+## Trade-offs, honestly
+
+Storing every raw response before parsing costs storage, permanently, for data that might never need reprocessing. That cost is worth it the first time a parser bug would otherwise have meant redoing a live capture run against a target that no longer looks the way it did.
+
+The admission gate and kill switch add a layer of indirection between "the system wants to fetch this" and "the fetch actually happens" — a small latency and complexity cost, paid once, to guarantee the system can be stopped instantly and completely rather than gracefully-eventually.
+
+## Reliability
+
+Session retirement and recovery exist because identity health is not binary — a session degrades gradually, and the system is built to notice that gradient rather than only reacting to an outright failure. The admission gate's fail-closed default means an ambiguous signal results in stopping, not in guessing and continuing.
+
+## Outcome
+
+One platform adapter is verified end to end against live accounts, running on the fetch mechanism it was originally built with. The kernel boundary, admission gate, session pool, and raw-store-before-parse pattern are built and proven for that adapter. Storage, queue, scheduler, and API layers remain designed, not built. A separate, newer fetch runtime, built on the open-source Crawlee library, has been written but never executed against a live target — a distinct code path from the one the verified adapter runs on. That is stated here exactly as the project's own documentation states it — a prototype, not a running production system.
+
+## Lessons
+
+Defining the platform boundary before writing the first adapter, and separating capture from parsing at the storage layer, are the two decisions that would be hardest to retrofit later. Everything else in this system could be added or changed without touching either of them, which is the actual test of whether a boundary was drawn in the right place.

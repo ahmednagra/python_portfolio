@@ -1,0 +1,94 @@
+export const frontmatter = {
+  slug: "billing-correctness-under-concurrency",
+  title: "Getting Billing Right When Everything Arrives Twice",
+  variant: "architecture",
+  diagramKey: "webhook-idempotency",
+  tags: ["billing", "concurrency", "idempotency", "multi-tenant-saas"],
+  attributionLine:
+    "A major contributor, not the sole author, on a team-built platform; dominant author of the payment-webhook handler (24 of 26 commits to that file) and top author of the quota-locking work specifically.",
+  attributionToken: "Contributor",
+  buildState: "RUNNING",
+  buildStateNote:
+    "Runs in production. No throughput, volume, or revenue figure is stated anywhere in this case study, because none was ever measured — that measurement is named below as unfinished work, not hidden.",
+  publicationStatus: "cleared",
+  summary30s:
+    "A multi-tenant SaaS platform sells metered plans through more than one payment gateway. Two failure modes make 'approximately right' the same as wrong: a shared usage counter under real concurrency, and payment gateways that redeliver the same event more than once. The fix moves quota consumption to a database row lock and enforces webhook idempotency at the database boundary, with a durable audit trail underneath both.",
+  oneLine:
+    "Quota consumption under real concurrency, and payment webhooks that redeliver by design.",
+  audienceFit:
+    "Founders and engineering leads with a plan-based, metered, or subscription product where a wrong charge or a wrong quota count is a real cost, not a rounding error",
+};
+
+## Problem
+
+A multi-tenant SaaS platform sells plans with metered features. Tenants consume units against a quota; some plans are unlimited; payment runs through more than one gateway because a single provider does not cover every market the product sells into.
+
+The business problem is not "take payments." It is that billing is the one subsystem where being approximately right is indistinguishable from being wrong. A quota that drifts by one unit either gives away revenue or bills a customer for something they did not consume. A payment callback processed twice charges someone twice. Neither failure announces itself — both surface weeks later as a support ticket nobody can reconstruct.
+
+## Context
+
+The subsystem sits inside a larger product platform: a Python API over PostgreSQL, with a React dashboard in front of it. Roughly fifteen service classes handle the billing domain — accounts, plans, features, subscriptions, invoices, transactions, usage, quota, and the gateway integrations. I was the top contributor to the quota-locking work and the dominant author of the payment-webhook handler. The wider platform is team-built, and I am a major contributor, not the sole author; where a decision below was a team decision, I say so.
+
+## Constraints
+
+**Gateways retry, and they do not coordinate with you.** A payment provider that does not receive a prompt success response will redeliver. So will a provider that did receive one and lost the acknowledgement. Any handler that assumes a callback arrives once is already broken; the only question is when it bites.
+
+**One provider retries a handful of times over a short window, then discards the event permanently. The other redelivers for days.** That means the two gateways have opposite acknowledgement contracts, and a handler written correctly for one is wrong for the other. A deploy, a slow query, or a stretch of database contention inside the short window means an event from the impatient provider is gone for good, and system state silently diverges from the provider's own record.
+
+**Quota is a shared counter under genuine concurrency.** Two requests from the same tenant can hit the same row in the same millisecond. Read-modify-write in application code loses one of them, silently.
+
+**Money cannot use binary floating point.** Not a preference — it is a rounding bug waiting to become an invoice discrepancy.
+
+**A gateway that is switched off for new business must keep working for money that already moved through it.** Turning off a provider for new checkouts cannot break a refund against a transaction that already used it.
+
+## Architecture
+
+```text
+subscription --> plan entitlement --> usage counter --> usage event log
+  the contract       the limit           consumed          audit trail
+
+payment gateways --> registry --> adapter --> gateway-specific module
+                        |
+                        +-- "which gateway takes a NEW payment?"      honours the on/off toggle
+                        +-- "which gateway owns THIS transaction?"    ignores the toggle entirely
+```
+
+The usage flow separates the limit from the consumption from the evidence. The registry sits between the generic checkout path and any provider-specific code, so adding a gateway means registering an adapter rather than editing every caller.
+
+## Decisions
+
+**Quota consumption takes a database row lock, not an application lock.** `SELECT ... FOR UPDATE` on the relevant rows before any arithmetic. The alternative — read the row, add in application code, write it back — loses updates under concurrency, silently: two requests both read 10, both write 11, and a unit of billable usage evaporates.
+
+**Every counter mutation writes an immutable event row, in the same transaction.** This is deliberate redundancy: the counter answers "how much is left" fast; the log answers "how did we get here" when a charge is disputed. If the two ever disagree, that disagreement is the alarm.
+
+**Webhook idempotency is enforced by the database, not by application logic.** The provider's event id carries a unique constraint; a duplicate delivery fails the insert and is discarded before any handler runs. Underneath that, individual handlers are separately idempotent — keyed on invoice number and on the gateway's own transaction id — so the system tolerates a duplicate even if the outer guard is bypassed by a replay or a manual retry.
+
+**Two resolution paths for gateways, deliberately not interchangeable.** "Which gateway takes new money" respects the active toggle. "Which gateway owns this existing transaction" resolves from the transaction itself and ignores the toggle. Collapsing these into one lookup would refund a charge through whichever provider happens to be enabled today — a class of bug that moves real money to the wrong place and is very hard to unwind.
+
+**A reconciliation sweep as the safety net.** Because a short retry window cannot always be trusted, a periodic job re-queries the provider for transactions left in a non-terminal state and settles them. The sweep is written to be safe under concurrent execution, because the scheduler that triggers it is not.
+
+## Trade-offs, honestly
+
+Row locks serialize. Two requests consuming the same tenant's quota now wait on each other. For a hot tenant that is a real throughput ceiling, and it is the correct trade — a queue is recoverable, a wrong balance is not. If it ever became the bottleneck, the fix is an atomic in-SQL increment, not abandoning the guarantee.
+
+Every consumption writes twice, deliberately. Storage is cheap, and the audit trail has already paid for itself in reconstructing disputes.
+
+The reconciliation sweep costs provider API calls on a schedule whether or not anything is pending — cheaper than the alternative, which is money left in an unknown state.
+
+## Reliability — the failure mode I now look for first
+
+The subsystem assumes duplicates, retries, and partial failure by default. The harder, more general lesson was about scheduled work.
+
+In-process job registration is correct on one instance and quietly wrong on two. A scheduler that registers recurring jobs inside the application process, guarded by a per-process concurrency limit, looks safe in review and behaves correctly in every local test. That guard bounds overlap within a process and says nothing across processes. Deploy the same image to a second instance and both fire the same job in the same minute — and nothing fails loudly at the moment it becomes wrong, which is what makes it dangerous. For a generic recurring billing job, the failure mode is the same charge or credit applied more than once. The guard has to be an advisory lock around the batch, or a skip-locked selection on the candidates — and that decision belongs at the moment the scheduler is introduced, not after the first duplicate charge.
+
+## Security
+
+Gateway secrets live in configuration rather than in the provider row — the row stores a reference to the secret's name, so rotating a credential never touches code or data. Webhook payloads are treated as untrusted after authentication as well as before. I am deliberately not making a blanket claim that every money path on a platform this size is fully tenant-scoped — that is a per-route guarantee, earned route by route, not something honestly asserted wholesale.
+
+## Outcome
+
+The billing subsystem runs in production. Quota consumption is atomic, every mutation is auditable, and duplicate gateway deliveries are absorbed at the database boundary rather than by hope. No performance or volume numbers are claimed, because none were measured — the design holds under concurrency; the p99 was never instrumented, and that is the obvious next piece of work.
+
+## Lessons
+
+The general shape — a scheduler that is correct on one instance and quietly wrong on two — is worth checking on any recurring job the first day it is introduced, not after it produces a duplicate. Money-adjacent systems reward stating trade-offs plainly more than any other domain: a case study with no trade-offs, on a subject this sensitive, is the one a technical reader trusts least.

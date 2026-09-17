@@ -1,0 +1,88 @@
+export const frontmatter = {
+  slug: "tenant-isolation-by-default",
+  title: "Tenant Isolation You Cannot Forget to Apply",
+  variant: "SaaS architecture",
+  diagramKey: "tenant-isolation",
+  tags: ["multi-tenancy", "postgresql", "security", "messaging"],
+  attributionLine:
+    "Sole author — every commit on this project is mine, on a standalone service designed to be a consumer for its parent product, not owned by it.",
+  attributionToken: "Sole author",
+  buildState: "BUILT",
+  buildStateNote:
+    "Architecturally complete, functionally partial. The tenant-isolation and secret-handling architecture described here is built and real. The outbound provider integration is not: most of the outbound provider layer is stubs, the outbox has no drain worker (a stored message is not yet a sent one), and there is no automated test suite. None of that is hidden — it is the honest state of a pre-production service.",
+  publicationStatus: "cleared",
+  summary30s:
+    "A standalone multi-tenant messaging service was designed so that tenant isolation cannot be forgotten by a future developer: it lives in the database as row-level security, with tenant identity bound at transaction start, rather than as a WHERE-clause discipline every query has to remember. The trade-off is real and stated plainly: it costs connection-pool flexibility. The build state is stated just as plainly: architecturally complete, functionally partial.",
+  oneLine:
+    "Moving multi-tenant isolation into the database rather than trusting application-code discipline.",
+  audienceFit:
+    "Teams building or retrofitting multi-tenant SaaS, especially ahead of a security review, SOC 2 process, or an enterprise customer's due diligence",
+};
+
+## Problem
+
+Multi-tenant isolation that lives entirely in application-code discipline is a leak waiting to happen. Every query has to remember to filter by tenant. That is correct until exactly one query does not, and by the time that shows up it is a data-isolation incident rather than a code-review comment.
+
+## Context
+
+This was a standalone, schema-isolated messaging service — a general-purpose multi-tenant messaging platform, not a feature bolted onto one product. It was explicitly designed so its first consumer, a company dashboard, is a client of it rather than an owner of it: any other product could integrate against the same service. I am the sole author of the entire project.
+
+## Constraints
+
+**The isolation guarantee has to survive a bug, not just a correct implementation.** Application-level tenant filtering is only as strong as the discipline of every engineer who ever writes a query against the schema, forever. A single missed filter is a data leak, not a crash — which means it can ship, pass review, and sit undetected until someone notices the wrong data in the wrong place.
+
+**Secrets need to rotate without a deploy.** Per-tenant integrations mean per-tenant credentials, and a credential stored by value means rotating it touches both code and data.
+
+**Inbound webhooks from partner integrations have to be authenticated before anything downstream trusts them**, and authentication alone is not enough — payloads stay untrusted after verification too.
+
+## Architecture
+
+```text
+request --> transaction begins --> tenant context bound to the connection
+                                          |
+                                          v
+                              every query in this transaction
+                              is scoped by row-level security,
+                              enforced by the database itself --
+                              not by an application WHERE clause
+
+inbound webhook --> per-partner HMAC verification --> outbox row written
+                                                              |
+                                                              v
+                                                 (drain worker: designed, not yet built --
+                                                  a stored row is not yet a sent message)
+```
+
+Secrets are stored by reference: the provider row holds the *name* of a configuration entry, not the secret's value, so rotating a credential is a configuration change, not a code or data change.
+
+## Decisions
+
+**Row-level security in the database, tenant bound at transaction start.** Rather than trusting every query to add a tenant filter, the tenant identifier is bound to the database session at the start of the transaction, and row-level security policies enforce the boundary underneath every query that follows — including ones a future developer writes without thinking about tenancy at all.
+
+**Secrets held by reference, not by value.** The provider configuration row names a settings attribute rather than storing the secret directly, so a credential rotation is an operational change, not a migration.
+
+**Per-partner HMAC-verified inbound webhooks**, checked before the payload is trusted for anything, including routing.
+
+**An outbox pattern for outbound messages**, written before a drain worker existed to consume it. This was a sequencing choice, not an oversight: the durable write path was built and proven first, deliberately, before the delivery worker that reads from it.
+
+## Trade-offs, honestly
+
+Binding tenant at transaction start costs connection-pool flexibility — a connection is committed to a tenant context for the life of that transaction, which constrains how freely connections can be shared across concurrent tenants at very high connection-pool pressure. That is the price of a guarantee that survives a bug in application code, and it is a price worth paying for the isolation property, not a cost that was overlooked.
+
+Building the outbox before the drain worker means the service currently *stores* outbound messages reliably without yet *sending* most of them anywhere — a `201` response means "durably stored," not "delivered." That gap is named explicitly rather than implied away, because describing a designed-but-unbuilt component as working is the one dishonesty this kind of write-up cannot afford.
+
+## Reliability
+
+The outbox exists specifically so that a future drain worker can be added without redesigning the write path — the durability guarantee is already in place; only the delivery side remains. Inbound HMAC verification fails closed: an unverifiable payload is rejected before it reaches any handler, rather than logged and processed anyway.
+
+## Security
+
+Row-level security is the enforcement point, not a defense-in-depth nicety layered on top of application filtering — it is the primary control. Secrets never appear in the database by value, only by reference, and payloads are treated as untrusted after HMAC verification as well as before it.
+
+## Outcome
+
+The tenant-isolation and secret-handling architecture is real, built, and the part of this project I would point to first. The outbound integration and automated test coverage are not there yet, and this write-up says so rather than rounding a pre-production service up to "in production."
+
+## Lessons
+
+The single decision that mattered most here was moving the isolation boundary as early and as low as possible — into the database itself — rather than trusting it to be re-applied correctly, forever, by every future line of application code. Everything else in the design follows from that one choice.

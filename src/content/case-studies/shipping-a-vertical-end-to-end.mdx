@@ -1,0 +1,71 @@
+export const frontmatter = {
+  slug: "shipping-a-vertical-end-to-end",
+  title: "Shipping a Product Vertical End to End, Not Split Across a Hand-Off",
+  variant: "SaaS platform",
+  diagramKey: "vertical-ownership",
+  tags: ["full-stack", "saas", "product-engineering", "react-query"],
+  attributionLine:
+    "Contributor, major, on both the backend and the frontend halves of a team-built platform — not sole author of the platform, and not claiming architecture ownership beyond the parts actually authored.",
+  attributionToken: "Contributor",
+  buildState: "RUNNING",
+  buildStateNote:
+    "Runs in production as part of a team-built platform. The commit-based measurement below states its own basis (a specific branch, a specific pair of author identities, a specific measurement date) rather than presenting a bare number.",
+  publicationStatus: "cleared",
+  summary30s:
+    "Most feature requests in a product with a backend and a frontend get split into two tickets, and a contract mismatch usually shows up late. On a team-built influencer-marketing SaaS platform, 119 of 154 backend-active days also carried commits to the same product's dashboard — a measured pattern, not a self-description — across nine product domains including campaigns, subscription billing, messaging, and payments.",
+  oneLine:
+    "A measured account of owning a feature across the database, the API, and the interface.",
+  audienceFit:
+    "Small to mid-size teams (roughly 5–40 people) where one person owning a feature end to end is worth more than two specialists coordinating across a hand-off",
+};
+
+## Problem
+
+A feature that touches the database schema, the API, and the user interface usually becomes three separate pieces of work: a backend ticket, a frontend ticket, and — later, and expensively — a contract mismatch discovered when the two meet. Two sprints often happen where one would have sufficed, and the coordination cost between the two specialists frequently exceeds the specialization benefit, especially on a small team.
+
+## Context
+
+An influencer-marketing SaaS platform with a FastAPI backend and a Next.js dashboard serving four distinct user types — platform operators, agency and company tenants, influencers, and B2B clients. The platform is team-built with contributors beyond myself. My own work spans both the backend and the dashboard, substantially, across a shared set of product domains.
+
+## Constraints
+
+**A hand-off is where contract mismatches hide.** An endpoint designed without its consumer in view often returns a shape that is technically correct and practically awkward, discovered only once someone tries to render it.
+
+**A shared client-side data-fetching layer needs a single cache key discipline**, or the same server data ends up duplicated under multiple cache entries that can silently disagree with each other.
+
+**Four user types on one platform means four parallel route surfaces**, each with its own authorization rules, sharing infrastructure without being allowed to leak into each other.
+
+## Architecture
+
+```text
+component --> typed API client --> internal API route --> server-side service --> backend API
+   |                                                                                    |
+   +----------------------- shared query cache, one entry per resource -----------------+
+                            (not one entry per screen that happens to need it)
+```
+
+The browser never calls the backend API directly — every request passes through a server-side layer that owns authentication and shapes the response for its actual consumer. On the client, one cache entry per underlying resource, with selectors deriving each screen's specific view, replaces what would otherwise become duplicate query keys quietly drifting out of sync with each other.
+
+## Decisions
+
+**Design the endpoint and the client that consumes it in the same sitting.** Rather than finishing an API and then discovering what the frontend actually needed from it, the two are considered together — which is only possible, and only efficient, when one person owns both.
+
+**One cache entry per resource, with selectors, instead of one query per screen.** A campaign detail screen and a campaign edit screen consume the same underlying data through different selectors against the same cached entry, rather than two independent fetches that can disagree.
+
+**Nine product domains carry substantial work on both the backend and the dashboard**, rather than being split cleanly down a person-per-layer boundary: campaigns and the funnel, subscription billing, WhatsApp messaging, social account connections, a third-party WhatsApp provider integrated end to end, payments and payouts, roles and permissions, and invoicing.
+
+## Trade-offs, honestly
+
+Owning both sides of a vertical does not scale past a certain team size or specialization depth — this approach is a strength on a small team and becomes a bottleneck on a much larger one where deep frontend or deep backend specialization actually pays for itself. It is also not evidence of frontend specialization: there is no frontend test suite, no design-system authorship, and no accessibility audit artifact behind this work. The claim is vertical ownership of product features, not frontend engineering depth.
+
+## Reliability
+
+Because the same person designs the endpoint and its consumer, a change to a response shape is far less likely to silently break a screen that depends on an undocumented assumption about that shape — the assumption was never undocumented in the first place, because it lived in one person's head across both layers.
+
+## Outcome
+
+The measurement, stated with its basis: across a specific branch and using two author identities (a personal git email and a GitHub no-reply identity), measured on a specific date, 119 of 154 backend-active days also carried commits to the platform's dashboard — 77% of backend-active days, 81% of dashboard-active days. Nine product domains show substantial commit activity on both sides. This measures commit-day overlap, not feature-level ownership claims beyond what the commit history actually shows, and it covers only my own commits on a platform built by a team, not by me alone.
+
+## Lessons
+
+The count matters more than the adjective. "I work across the stack" is a claim anyone can make; a measured commit-day overlap across nine domains, with the measurement's own basis stated, is a claim that survives being checked.
