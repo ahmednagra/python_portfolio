@@ -33,10 +33,11 @@ export function AudienceSwitch({ current = null }: AudienceSwitchProps) {
 
   const chipClasses = (active: boolean) =>
     cn(
-      "mono-label inline-flex min-h-[44px] items-center border px-4 text-center transition-colors motion-safe:duration-(--duration-ui) motion-safe:ease-(--ease-standard)",
+      "mono-label inline-flex min-h-[44px] items-center rounded-full border px-4 text-center " +
+        "transition-[color,background-color,transform] motion-safe:duration-(--duration-ui) motion-safe:ease-(--ease-standard)",
       active
-        ? "border-(--color-signal) text-(--color-tone-signal)"
-        : "border-(--color-border-strong) text-(--color-ink) hover:bg-(--color-canvas-raised)"
+        ? "border-(--color-signal) bg-(--color-tone-signal) text-(--color-signal-on)"
+        : "border-(--color-border-strong) text-(--color-ink) hover:-translate-y-px hover:bg-(--color-canvas-raised)"
     );
 
   return (

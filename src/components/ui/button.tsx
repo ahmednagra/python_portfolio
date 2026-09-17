@@ -4,20 +4,22 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap border font-medium transition-colors motion-safe:duration-(--duration-ui) motion-safe:ease-(--ease-standard) disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full border font-medium transition-[color,background-color,transform,box-shadow] motion-safe:duration-(--duration-ui) motion-safe:ease-(--ease-standard) disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
         primary:
-          "border-(--color-signal) bg-(--color-signal) text-(--color-signal-on) hover:opacity-90",
+          "border-(--color-signal) bg-(--color-signal) text-(--color-signal-on) " +
+          "hover:-translate-y-px hover:shadow-(--shadow-signal) active:translate-y-0",
         secondary:
-          "border-(--color-border-strong) bg-transparent text-(--color-ink) hover:bg-(--color-canvas-raised)",
+          "border-(--color-border-strong) bg-transparent text-(--color-ink) " +
+          "hover:-translate-y-px hover:border-(--color-ink) hover:shadow-(--shadow-sm) active:translate-y-0",
         ghost: "border-transparent bg-transparent text-(--color-ink) hover:bg-(--color-canvas-raised)",
       },
       size: {
-        sm: "min-h-[36px] px-3 text-sm",
-        md: "min-h-[44px] px-4 text-base",
-        lg: "min-h-[48px] px-6 text-lg",
+        sm: "min-h-[36px] px-4 text-sm",
+        md: "min-h-[44px] px-5 text-base",
+        lg: "min-h-[48px] px-7 text-lg",
       },
     },
     defaultVariants: {

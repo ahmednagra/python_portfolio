@@ -23,9 +23,13 @@ export function Card({ href, eyebrow, className, children }: CardProps) {
   );
 
   const sharedClasses = cn(
-    "group relative block border border-(--color-border) bg-(--color-canvas-raised) p-5 shadow-(--shadow-xs) before:absolute before:inset-y-0 before:left-0 before:w-[2px] before:bg-(--color-signal) before:opacity-0",
+    "group relative block rounded-lg border border-(--color-border) bg-(--color-canvas-raised) p-5 shadow-(--shadow-xs)",
+    "before:absolute before:inset-y-0 before:left-0 before:w-[2px] before:rounded-l-lg before:bg-(--color-signal) before:opacity-0",
+    "motion-safe:transition-[transform,box-shadow] motion-safe:duration-(--duration-ui) motion-safe:ease-(--ease-standard)",
     "motion-safe:before:transition-opacity motion-safe:before:duration-(--duration-ui) motion-safe:before:ease-(--ease-standard)",
-    href && "hover:before:opacity-100 focus-visible:before:opacity-100",
+    href &&
+      "hover:-translate-y-0.5 hover:shadow-(--shadow-md) hover:before:opacity-100 " +
+        "focus-visible:-translate-y-0.5 focus-visible:shadow-(--shadow-md) focus-visible:before:opacity-100",
     className
   );
 

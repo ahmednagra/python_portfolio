@@ -23,8 +23,10 @@
   --color-border: oklch(85% 0.01 80);
   --color-border-strong: oklch(70% 0.012 80);
 
-  /* Single annotation signal color (amber/red) */
-  --color-signal: oklch(54% 0.19 35);
+  /* Single annotation signal color (amber/red) — fuller chroma than a thin
+     accent so it reads with more confidence wherever it's used solid
+     (buttons, monogram, filled badges), not just as an outline. */
+  --color-signal: oklch(56% 0.21 35);
   --color-signal-on: oklch(99% 0.01 90);
 
   /* Semantic tones for Badge */
@@ -37,10 +39,20 @@
   --focus-ring-color: var(--color-signal);
 
   --shadow-xs: 0 1px 2px oklch(22% 0.01 80 / 0.06);
+  --shadow-sm: 0 2px 8px oklch(22% 0.01 80 / 0.08);
+  --shadow-md: 0 8px 24px oklch(22% 0.01 80 / 0.12);
+  --shadow-signal: 0 6px 20px color-mix(in oklch, var(--color-signal) 35%, transparent);
 
   /* Typography */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, "SFMono-Regular", monospace;
+
+  /* Display scale for the hero headline — bolder and tighter than the base
+     UI scale, so the opening statement carries real typographic weight
+     instead of reading as body text sized up. */
+  --font-size-display: clamp(2.5rem, 1.7rem + 3.2vw, 4.25rem);
+  --line-height-display: 1.04;
+  --letter-spacing-display: -0.02em;
 
   --measure-prose: 68ch;
   --font-size-prose: 1.1875rem; /* 19px */
@@ -72,7 +84,7 @@
     --color-border: oklch(34% 0.012 80);
     --color-border-strong: oklch(46% 0.014 80);
 
-    --color-signal: oklch(72% 0.17 45);
+    --color-signal: oklch(72% 0.19 45);
     --color-signal-on: oklch(16% 0.01 80);
 
     --color-tone-success: oklch(70% 0.14 150);
@@ -80,6 +92,9 @@
     --color-tone-danger: oklch(70% 0.18 25);
 
     --shadow-xs: 0 1px 2px oklch(0% 0 0 / 0.4);
+    --shadow-sm: 0 2px 8px oklch(0% 0 0 / 0.45);
+    --shadow-md: 0 10px 28px oklch(0% 0 0 / 0.55);
+    --shadow-signal: 0 6px 22px color-mix(in oklch, var(--color-signal) 45%, transparent);
   }
 }
 
@@ -94,7 +109,7 @@
   --color-border: oklch(34% 0.012 80);
   --color-border-strong: oklch(46% 0.014 80);
 
-  --color-signal: oklch(72% 0.17 45);
+  --color-signal: oklch(72% 0.19 45);
   --color-signal-on: oklch(16% 0.01 80);
 
   --color-tone-success: oklch(70% 0.14 150);
@@ -102,6 +117,9 @@
   --color-tone-danger: oklch(70% 0.18 25);
 
   --shadow-xs: 0 1px 2px oklch(0% 0 0 / 0.4);
+  --shadow-sm: 0 2px 8px oklch(0% 0 0 / 0.45);
+  --shadow-md: 0 10px 28px oklch(0% 0 0 / 0.55);
+  --shadow-signal: 0 6px 22px color-mix(in oklch, var(--color-signal) 45%, transparent);
 }
 
 :root[data-theme="light"] {

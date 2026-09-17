@@ -70,7 +70,7 @@ export function ThemeToggle() {
       type="button"
       onClick={cycle}
       suppressHydrationWarning
-      className="mono-label min-h-[36px] min-w-[36px] border border-(--color-border-strong) px-2 text-(--color-ink) hover:bg-(--color-canvas-raised)"
+      className="mono-label min-h-[36px] min-w-[36px] rounded-full border border-(--color-border-strong) px-3 text-(--color-ink) transition-[background-color,transform] motion-safe:duration-(--duration-ui) motion-safe:ease-(--ease-standard) hover:-translate-y-px hover:bg-(--color-canvas-raised)"
       aria-label={`Theme: ${LABEL[theme]}. Activate to switch.`}
     >
       {LABEL[theme]}

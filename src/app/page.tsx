@@ -53,7 +53,10 @@ export default function HomePage() {
   return (
     <div className="mx-auto max-w-(--container-max) space-y-16 px-4 py-12 sm:px-6 sm:py-16">
       <section aria-labelledby="hero-heading">
-        <h1 id="hero-heading" className="max-w-(--measure-prose) text-3xl font-semibold sm:text-4xl">
+        <h1
+          id="hero-heading"
+          className="max-w-(--measure-prose) text-(length:--font-size-display) leading-(--line-height-display) font-semibold tracking-(--letter-spacing-display) text-balance"
+        >
           {heroSection.heading}
         </h1>
         <div className="mt-4 max-w-(--measure-prose) text-lg text-(--color-ink-muted)">
